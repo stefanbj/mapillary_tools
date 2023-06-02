@@ -6,7 +6,7 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from .. import exceptions, geo, types
+from .. import exceptions, geo, types, exiftool
 from . import (
     blackvue_parser,
     camm_parser,
@@ -14,6 +14,7 @@ from . import (
     gpmf_parser,
     simple_mp4_parser as parser,
     utils as video_utils,
+    geotag_from_gpx_file,
 )
 
 LOG = logging.getLogger(__name__)
@@ -111,6 +112,23 @@ class GeotagFromVideo:
                     video_metadata = types.VideoMetadata(
                         video_path, None, types.FileType.BLACKVUE, points, make, model
                     )
+
+        if video_metadata is None or types.FileType.EXIFGPX in filetypes:
+            LOG.info("Attempting to extracting video metdata using exiftool")
+            try:
+                make, model = "ExifTool", exiftool.extract_camera_model(video_path)
+            except parser.ParsingError:
+                model = None
+
+            try:
+                gpxPath = exiftool.extract_gpx(video_path)
+                geoGpx = geotag_from_gpx_file.GeotagFromGPXFile(gpxPath, gpxPath)
+            except parser.ParsingError:
+                geoGpx = None
+
+            video_metadata = types.VideoMetadata(
+                video_path, None, types.FileType.EXIFGPX, geoGpx.points, make, model
+            )
 
         if video_metadata is None:
             return types.describe_error_metadata(

@@ -40,6 +40,7 @@ class FileType(enum.Enum):
     CAMM = "camm"
     GOPRO = "gopro"
     IMAGE = "image"
+    EXIFGPX = "exiftool"
 
 
 @dataclasses.dataclass
